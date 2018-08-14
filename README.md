@@ -1,2 +1,2 @@
 # gandi-livedns-dynamic-updater
-### Update Gandi LiveDNS using dynamically assigned IPv4 and IPv6 addresses.
+### Update Gandi LiveDNS with dynamically assigned IPv4 and IPv6 addresses.
