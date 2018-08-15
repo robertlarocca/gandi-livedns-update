@@ -141,7 +141,7 @@ case $1 in
 	;;
 -u|*)
 	if [ ! -z $1 ]; then
-		if [ "-u" == $1 ]; then
+		if [ "-u == $1" ]; then
 			root_check
 			resolve_check
 			update_inet_addr
