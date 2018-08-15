@@ -2,6 +2,9 @@
 
 # Copyright (c) 2018 Robert LaRocca
 
+# Use of this source code is governed by an MIT-style license that can be
+# found in the projects LICENSE file or https://www.laroccx.io/LICENSE.md
+
 SCRIPTVERSION="0.2-devel"
 
 # Add your DNS record and domain name
