@@ -18,7 +18,7 @@ fulldomain=$record.$domain
 # Add your Gandi API authentication token
 # https://account.gandi.net
 #
-apikey="0FsZpAx9n0kEuQsqt4Ar5EWc"
+apikey="Top-Secret-Gandi-LiveDNS-Token"
 # The /etc/gandi-livedns.secret file take precedence
 #
 if [ -e /etc/gandi-livedns.secret ]; then
