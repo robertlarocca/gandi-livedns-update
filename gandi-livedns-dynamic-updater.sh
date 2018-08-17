@@ -133,30 +133,30 @@ EOF
 command_options()
 {
 case $1 in
--h|--help)
+--help)
 	command_help
 	;;
--V)
+--version)
 	printf "$SCRIPTNAME, version $SCRIPTVERSION-$(uname)\n"
 	printf "Copyright (c) 2018 Robert LaRocca\n"
 	;;
--6)
+-6|--six)
 	root_check
 	resolve_check
 	update_inet6_addr
 	;;
--4)
+-4|--four)
 	root_check
 	resolve_check
 	update_inet_addr
 	;;
--l)
+-l|--list)
 	printf "$datelog $hostnamelog $SCRIPTNAME: IPv4 address $inet_addr\n"
 	printf "$datelog $hostnamelog $SCRIPTNAME: IPv6 address $inet6_addr\n"
 	;;
--u|*)
+*)
 	if [ ! -z $1 ]; then
-		if [ "-u == $1" ]; then
+		if [ "-a == $1" ] || [ "--all == $1" ]; then
 			root_check
 			resolve_check
 			update_inet_addr
