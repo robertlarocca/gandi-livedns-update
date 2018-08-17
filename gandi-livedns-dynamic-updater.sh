@@ -5,7 +5,8 @@
 # Use of this source code is governed by an MIT-style license that can be
 # found in the projects LICENSE file or https://www.laroccx.io/LICENSE.md
 
-SCRIPTVERSION="0.2-devel"
+SCRIPTVERSION="0.3.5-devel"
+SCRIPTNAME=$(basename -s .sh $0)
 
 # Add your DNS record and domain name
 # https://www.gandi.net/domain
@@ -30,14 +31,14 @@ if [ -e /etc/gandi-livedns.secret ]; then
 fi
 
 # Packages must be installed when using OpenWrt based distros
-#	opkg install curl bind-dig openssl-util ca-bundle
+#	$ opkg install curl bind-dig openssl-util ca-bundle
 #
-inetAgent="http://me.gandi.net"
 # The curl package also needs to be installed when using Ubuntu
-#	apt-get update && apt-get --yes install curl
+#	$ apt-get update && apt-get --yes install curl
 #
-inet_addr=$(curl -s4 $inetAgent)
-inet6_addr=$(curl -s6 $inetAgent)
+resolver="http://me.gandi.net"
+inet_addr=$(curl -s4 $resolver)
+inet6_addr=$(curl -s6 $resolver)
 inet_prev=$(dig A +short $fulldomain)
 inet6_prev=$(dig AAAA +short $fulldomain)
 
@@ -49,7 +50,7 @@ hostnamelog=$(hostname -f)
 root_check()
 {
 if [ $(id -u) != 0 ]; then
-	printf "$datelog $hostnamelog $0: Error root privilege is needed!\n"
+	printf "$datelog $hostnamelog $SCRIPTNAME: Error root privilege is needed!\n"
 	exit 1
 fi
 }
@@ -57,7 +58,7 @@ fi
 resolve_check()
 {
 if [ -z $inet_addr ] && [ -z $inet6_addr ]; then
-	printf "$datelog $hostnamelog $0: Error couldn't resolve: $inetAgent\n"
+	printf "$datelog $hostnamelog $SCRIPTNAME: Error couldn't resolve: $resolver\n"
 	exit 1
 fi
 };
@@ -69,14 +70,14 @@ local livedns="https://dns.api.gandi.net/api/v5"
 
 if [ -n $inet_addr ]; then
 	if [ "$inet_addr == $inet_prev" ]; then
-		printf "$datelog $hostnamelog $0: Not updating A record.\n"
+		printf "$datelog $hostnamelog $SCRIPTNAME: Not updating A record.\n"
 	else
 		curl -XPUT -d "$objects" \
 		-H "X-Api-Key: $authToken" \
 		-H "Content-Type: application/json" \
 		"$livedns/domains/$domain/records/$record/A" \
 		> /dev/null 2>&1
-		printf "$datelog $hostnamelog $0: Updating A record with $inet_addr\n"
+		printf "$datelog $hostnamelog $SCRIPTNAME: Updating A record with $inet_addr\n"
 	fi
 fi
 };
@@ -88,14 +89,14 @@ local livedns="https://dns.api.gandi.net/api/v5"
 
 if [ -n $inet6_addr ]; then
 	if [ "$inet6_addr == $inet6_prev" ]; then
-		printf "$datelog $hostnamelog $0: Not updating AAAA record.\n"
+		printf "$datelog $hostnamelog $SCRIPTNAME: Not updating AAAA record.\n"
 	else
 		curl -XPUT -d "$objects" \
 		-H "X-Api-Key: $authToken" \
 		-H "Content-Type: application/json" \
 		"$livedns/domains/$domain/records/$record/AAAA" \
 		> /dev/null 2>&1
-		printf "$datelog $hostnamelog $0: Updating AAAA record with $inet6_addr\n"
+		printf "$datelog $hostnamelog $SCRIPTNAME: Updating AAAA record with $inet6_addr\n"
 	fi
 fi
 };
@@ -103,16 +104,30 @@ fi
 command_help()
 {
 cat <<EOF
-Usage: $0 [-ul46Vh]
+Usage:	$SCRIPTNAME [-a46l] [--help] [--version] HOSTNAME
 
-	-u update both IPv4 and IPv6 addresses
-	-l display current IP addresses and exit
-	-4 update only the IPv4 address
-	-6 update only the IPv6 address
-	-V print version and copyright information
-	-h print command usage and exit
+Update LiveDNS using this machines current IP address. The HOSTNAME option
+may be specified using standard input, although most options are configured by
+editing /etc/$SCRIPTNAME.secret and /etc/$SCRIPTNAME.conf files.
+
+  -a, --all	update both IPv4 and IPv6 external network addresses
+  -4, --four	update only the IPv4 address
+  -6, --six	update only the IPv6 address
+  -l, --list	list current IP addresses and exit
+  --help	print	command usage and exit
+  --version	print version and copyright information
+
+Examples:
+  $SCRIPTNAME -a git
+  $SCRIPTNAME --four mail
+  $SCRIPTNAME --six www
+  $SCRIPTNAME -l
+  
+Source:
+$SCRIPTNAME, version $SCRIPTVERSION-$(uname)
+Copyright (c) 2018 Robert LaRocca
+Source <https://github.com/robertlarocca/gandi-livedns-dynamic-updater>
 EOF
-exit 1
 };
 
 command_options()
@@ -122,7 +137,7 @@ case $1 in
 	command_help
 	;;
 -V)
-	printf "$0, version $SCRIPTVERSION-$(uname)\n"
+	printf "$SCRIPTNAME, version $SCRIPTVERSION-$(uname)\n"
 	printf "Copyright (c) 2018 Robert LaRocca\n"
 	;;
 -6)
@@ -136,8 +151,8 @@ case $1 in
 	update_inet_addr
 	;;
 -l)
-	printf "$datelog $hostnamelog $0: IPv4 address $inet_addr\n"
-	printf "$datelog $hostnamelog $0: IPv6 address $inet6_addr\n"
+	printf "$datelog $hostnamelog $SCRIPTNAME: IPv4 address $inet_addr\n"
+	printf "$datelog $hostnamelog $SCRIPTNAME: IPv6 address $inet6_addr\n"
 	;;
 -u|*)
 	if [ ! -z $1 ]; then
@@ -147,7 +162,7 @@ case $1 in
 			update_inet_addr
 			update_inet6_addr
 		else
-		printf "$0: unrecognized option '$1'\n"
+		printf "$SCRIPTNAME: unrecognized option '$1'\n"
 			command_help
 		fi
 	else
