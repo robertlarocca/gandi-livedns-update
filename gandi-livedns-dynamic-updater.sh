@@ -11,7 +11,7 @@ SCRIPTNAME=$(basename -s .sh $0)
 # Add your DNS record and domain name
 # https://www.gandi.net/domain
 #
-record="www"
+record=$2	# www
 domain="example.com"
 fulldomain=$record.$domain
 
