@@ -5,28 +5,27 @@
 # Use of this source code is governed by an MIT-style license that can be
 # found in the projects LICENSE file or https://www.laroccx.io/LICENSE.md
 
-SCRIPTVERSION="0.3.5-devel"
-SCRIPTNAME=$(basename -s .sh $0)
+SCRIPTVERSION="0.4-devel"
 
 # Add your DNS record and domain name
 # https://www.gandi.net/domain
 #
-record=$2	# www
-domain="example.com"
-fulldomain=$record.$domain
+record=$2					# www
+domain="example.com"		# gandi.net
+fulldomain=$record.$domain	# www.gandi.net
 
 # Add your Gandi API authentication token
 # https://account.gandi.net
 #
-apikey="0FsZpAx9n0kEuQsqt4Ar5EWc"
+apikey="TOP_SECRET_LIVEDNS_API_TOKEN"
 # The /etc/gandi-livedns.secret file take precedence
 #
 if [ -e /etc/gandi-livedns.secret ]; then
 	secret=$(cat /etc/gandi-livedns.secret)
 	if [ ! -z $secret ]; then
-		authToken=$secret
+		auth_token=$secret
 	else
-		authToken=$apikey
+		auth_token=$apikey
 	fi
 fi
 
@@ -42,15 +41,17 @@ inet6_addr=$(curl -s6 $resolver)
 inet_prev=$(dig A +short $fulldomain)
 inet6_prev=$(dig AAAA +short $fulldomain)
 
-# Needed for logging
+# used for logging
 #
-datelog=$(date +"%b %d %H:%M:%S")
-hostnamelog=$(hostname -f)
+time_stamp=$(date +"%b %d %H:%M:%S")
+host_name=$(hostname -f)
+script_name=$(basename -s .sh $0)
+rubber_stamp="$time_stamp $host_name $script_name"
 
 root_check()
 {
 if [ $(id -u) != 0 ]; then
-	printf "$datelog $hostnamelog $SCRIPTNAME: Error root privilege is needed!\n"
+	printf "$rubber_stamp: Error root privilege is needed!\n"
 	exit 1
 fi
 }
@@ -58,7 +59,7 @@ fi
 resolve_check()
 {
 if [ -z $inet_addr ] && [ -z $inet6_addr ]; then
-	printf "$datelog $hostnamelog $SCRIPTNAME: Error couldn't resolve: $resolver\n"
+	printf "$rubber_stamp: Error couldn't resolve: $resolver\n"
 	exit 1
 fi
 };
@@ -70,14 +71,14 @@ local livedns="https://dns.api.gandi.net/api/v5"
 
 if [ -n $inet_addr ]; then
 	if [ "$inet_addr == $inet_prev" ]; then
-		printf "$datelog $hostnamelog $SCRIPTNAME: Not updating A record.\n"
+		printf "$rubber_stamp: Not updating A record.\n"
 	else
 		curl -XPUT -d "$objects" \
-		-H "X-Api-Key: $authToken" \
+		-H "X-Api-Key: $auth_token" \
 		-H "Content-Type: application/json" \
 		"$livedns/domains/$domain/records/$record/A" \
 		> /dev/null 2>&1
-		printf "$datelog $hostnamelog $SCRIPTNAME: Updating A record with $inet_addr\n"
+		printf "$rubber_stamp: Updating A record with $inet_addr\n"
 	fi
 fi
 };
@@ -89,14 +90,14 @@ local livedns="https://dns.api.gandi.net/api/v5"
 
 if [ -n $inet6_addr ]; then
 	if [ "$inet6_addr == $inet6_prev" ]; then
-		printf "$datelog $hostnamelog $SCRIPTNAME: Not updating AAAA record.\n"
+		printf "$rubber_stamp: Not updating AAAA record.\n"
 	else
 		curl -XPUT -d "$objects" \
-		-H "X-Api-Key: $authToken" \
+		-H "X-Api-Key: $auth_token" \
 		-H "Content-Type: application/json" \
 		"$livedns/domains/$domain/records/$record/AAAA" \
 		> /dev/null 2>&1
-		printf "$datelog $hostnamelog $SCRIPTNAME: Updating AAAA record with $inet6_addr\n"
+		printf "$rubber_stamp: Updating AAAA record with $inet6_addr\n"
 	fi
 fi
 };
@@ -104,27 +105,27 @@ fi
 command_help()
 {
 cat <<EOF
-Usage:	$SCRIPTNAME [-a46l] [--help] [--version] HOSTNAME
+Usage:	$script_name [-a46l] HOSTNAME [--help] [--version]
 
 Update LiveDNS using this machines current IP address. The HOSTNAME option
 may be specified using standard input, although most options are configured by
-editing /etc/$SCRIPTNAME.secret and /etc/$SCRIPTNAME.conf files.
+editing /etc/$script_name.secret and /etc/$script_name.conf files.
 
   -a, --all	update both IPv4 and IPv6 external network addresses
   -4, --four	update only the IPv4 address
   -6, --six	update only the IPv6 address
   -l, --list	list current IP addresses and exit
-  --help	print	command usage and exit
+  --help	print command usage and exit
   --version	print version and copyright information
 
 Examples:
-  $SCRIPTNAME -a git
-  $SCRIPTNAME --four mail
-  $SCRIPTNAME --six www
-  $SCRIPTNAME -l
+  $script_name -a git
+  $script_name --four mail
+  $script_name --six www
+  $script_name -l
   
-Source:
-$SCRIPTNAME, version $SCRIPTVERSION-$(uname)
+Version:
+$script_name, version $SCRIPTVERSION-$(uname)
 Copyright (c) 2018 Robert LaRocca
 Source <https://github.com/robertlarocca/gandi-livedns-dynamic-updater>
 EOF
@@ -137,7 +138,7 @@ case $1 in
 	command_help
 	;;
 --version)
-	printf "$SCRIPTNAME, version $SCRIPTVERSION-$(uname)\n"
+	printf "$script_name, version $SCRIPTVERSION-$(uname)\n"
 	printf "Copyright (c) 2018 Robert LaRocca\n"
 	;;
 -6|--six)
@@ -151,8 +152,8 @@ case $1 in
 	update_inet_addr
 	;;
 -l|--list)
-	printf "$datelog $hostnamelog $SCRIPTNAME: IPv4 address $inet_addr\n"
-	printf "$datelog $hostnamelog $SCRIPTNAME: IPv6 address $inet6_addr\n"
+	printf "$rubber_stamp: IPv4 address $inet_addr\n"
+	printf "$rubber_stamp: IPv6 address $inet6_addr\n"
 	;;
 *)
 	if [ ! -z $1 ]; then
@@ -162,7 +163,7 @@ case $1 in
 			update_inet_addr
 			update_inet6_addr
 		else
-		printf "$SCRIPTNAME: unrecognized option '$1'\n"
+		printf "$script_name: unrecognized option '$1'\n"
 			command_help
 		fi
 	else
