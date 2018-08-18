@@ -17,11 +17,7 @@ fulldomain=$record.$domain	# www.gandi.net
 # Add your Gandi API authentication token
 # https://account.gandi.net
 #
-<<<<<<< HEAD
-apikey="TOP_SECRET_LIVEDNS_API_TOKEN"
-=======
-apikey="Top-Secret-Gandi-LiveDNS-Token"
->>>>>>> f5f90a5c55841de97104f9229decc17d78872e56
+apikey="Top-Secret-LiveDNS-API-Token"
 # The /etc/gandi-livedns.secret file take precedence
 #
 if [ -e /etc/gandi-livedns.secret ]; then
@@ -116,8 +112,8 @@ may be specified using standard input, although most options are configured by
 editing /etc/$script_name.secret and /etc/$script_name.conf files.
 
   -a, --all	update both IPv4 and IPv6 external network addresses
-  -4, --four	update only the IPv4 address
-  -6, --six	update only the IPv6 address
+  -4, --ipv4	update only the IPv4 address
+  -6, --ipv6	update only the IPv6 address
   -l, --list	list current IP addresses and exit
   --help	print command usage and exit
   --version	print version and copyright information
