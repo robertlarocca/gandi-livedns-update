@@ -35,9 +35,9 @@ fi
 # The curl package also needs to be installed when using Ubuntu
 #	$ apt-get update && apt-get --yes install curl
 #
-resolver="http://me.gandi.net"
-inet_addr=$(curl -s4 $resolver)
-inet6_addr=$(curl -s6 $resolver)
+resolver="ifconfig.co"
+inet_addr=$(curl --ssl-reqd -s4 $resolver)
+inet6_addr=$(curl --ssl-reqd -s6 $resolver)
 inet_prev=$(dig A +short $fulldomain)
 inet6_prev=$(dig AAAA +short $fulldomain)
 
