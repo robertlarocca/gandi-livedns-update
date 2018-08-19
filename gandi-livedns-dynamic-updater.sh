@@ -41,7 +41,7 @@ inet6_addr=$(curl --ssl-reqd -s6 $resolver)
 inet_prev=$(dig A +short $fulldomain)
 inet6_prev=$(dig AAAA +short $fulldomain)
 
-# used for logging
+# Used for logging
 #
 time_stamp=$(date +"%b %d %H:%M:%S")
 host_name=$(hostname -f)
@@ -120,8 +120,8 @@ editing /etc/$script_name.secret and /etc/$script_name.conf files.
 
 Examples:
   $script_name -a git
-  $script_name --four mail
-  $script_name --six www
+  $script_name --ipv4 mail
+  $script_name --ipv6 www
   $script_name -l
   
 Version:
@@ -141,12 +141,12 @@ case $1 in
 	printf "$script_name, version $SCRIPTVERSION-$(uname)\n"
 	printf "Copyright (c) 2018 Robert LaRocca\n"
 	;;
--6|--six)
+-6|--ipv6)
 	root_check
 	resolve_check
 	update_inet6_addr
 	;;
--4|--four)
+-4|--ipv4)
 	root_check
 	resolve_check
 	update_inet_addr
@@ -177,5 +177,6 @@ esac
 };
 
 command_options $1
+
 exit 0
 
