@@ -70,7 +70,7 @@ local objects='{"rrset_ttl": 600,"rrset_values": ["'$inet_addr'"]}'
 local livedns="https://dns.api.gandi.net/api/v5"
 
 if [ -n $inet_addr ]; then
-	if [ "$inet_addr == $inet_prev" ]; then
+	if [ "$inet_addr" == "$inet_prev" ]; then
 		printf "$rubber_stamp: Not updating A record.\n"
 	else
 		curl -XPUT -d "$objects" \
@@ -89,7 +89,7 @@ local objects='{"rrset_ttl": 600,"rrset_values": ["'$inet6_addr'"]}'
 local livedns="https://dns.api.gandi.net/api/v5"
 
 if [ -n $inet6_addr ]; then
-	if [ "$inet6_addr == $inet6_prev" ]; then
+	if [ "$inet6_addr" == "$inet6_prev" ]; then
 		printf "$rubber_stamp: Not updating AAAA record.\n"
 	else
 		curl -XPUT -d "$objects" \
@@ -123,7 +123,7 @@ Examples:
   $script_name --ipv4 mail
   $script_name --ipv6 www
   $script_name -l
-  
+
 Version:
 $script_name, version $SCRIPTVERSION-$(uname)
 Copyright (c) 2018 Robert LaRocca
