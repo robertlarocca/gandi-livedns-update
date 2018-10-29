@@ -2,8 +2,7 @@
 
 # Copyright (c) 2018 Robert LaRocca
 
-# Use of this source code is governed by an MIT-style license that can be
-# found in the projects LICENSE file or https://www.laroccx.com/LICENSE.md
+# Use of this source code is governed by an MIT-style license that can be found in the projects LICENSE file or https://www.laroccx.com/LICENSE.md
 
 SCRIPTVERSION="0.4-devel"
 
