@@ -2,7 +2,8 @@
 
 # Copyright (c) 2018 Robert LaRocca
 
-# Use of this source code is governed by an MIT-style license that can be found in the projects LICENSE file or https://www.laroccx.com/LICENSE.md
+# Use of this source code is governed by an MIT-style license that can be
+# found in the projects LICENSE file or https://www.laroccx.com/LICENSE.md
 
 SCRIPTVERSION="0.4-devel"
 
@@ -133,12 +134,12 @@ EOF
 command_options()
 {
 case $1 in
---help)
+-h|--help)
 	command_help
 	;;
---version)
+-V|--version)
 	printf "$script_name, version $SCRIPTVERSION-$(uname)\n"
-	printf "Copyright (c) 2018 Robert LaRocca\n"
+	printf "Copyright (c) 2018-$(date +%Y) Robert LaRocca\n"
 	;;
 -6|--ipv6)
 	root_check
@@ -178,4 +179,3 @@ esac
 command_options $1
 
 exit 0
-
