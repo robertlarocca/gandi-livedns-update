@@ -7,6 +7,17 @@
 
 SCRIPTVERSION="0.4-devel"
 
+# require root privileges
+require_root_privileges() {
+	if [[ "$UID" != "0" ]]; then
+		logger -i "Error: $(basename "$0") must be run as root!"
+		echo "Error: $(basename "$0") must be run as root!"
+		exit 1
+	fi
+};
+
+require_root_privileges
+
 # Add your DNS record and domain name
 # https://www.gandi.net/domain
 #
@@ -20,9 +31,9 @@ fulldomain=$record.$domain	# www.gandi.net
 apikey="Top-Secret-LiveDNS-API-Token"
 # The /etc/gandi-livedns.secret file take precedence
 #
-if [ -e /etc/gandi-livedns.secret ]; then
-	secret=$(cat /etc/gandi-livedns.secret)
-	if [ ! -z $secret ]; then
+if [[ -e /etc/gandi-livedns.secret ]]; then
+	source /etc/gandi-livedns.secret
+	if [[ ! -z $secret ]]; then
 		auth_token=$secret
 	else
 		auth_token=$apikey
@@ -42,68 +53,55 @@ inet_prev=$(dig A +short $fulldomain)
 inet6_prev=$(dig AAAA +short $fulldomain)
 
 # Used for logging
-#
 time_stamp=$(date +"%b %d %H:%M:%S")
 host_name=$(hostname -f)
 script_name=$(basename -s .sh $0)
 rubber_stamp="$time_stamp $host_name $script_name"
 
-root_check()
-{
-if [ $(id -u) != 0 ]; then
-	printf "$rubber_stamp: Error root privilege is needed!\n"
-	exit 1
-fi
-}
-
-resolve_check()
-{
-if [ -z $inet_addr ] && [ -z $inet6_addr ]; then
-	printf "$rubber_stamp: Error couldn't resolve: $resolver\n"
+resolve_check() {
+if [[ -z $inet_addr ]] && [[ -z $inet6_addr ]]; then
+	echo "$rubber_stamp: Error couldn't resolve: $resolver"
 	exit 1
 fi
 };
 
-update_inet_addr()
-{
+update_inet_addr() {
 local objects='{"rrset_ttl": 600,"rrset_values": ["'$inet_addr'"]}'
 local livedns="https://dns.api.gandi.net/api/v5"
 
-if [ -n $inet_addr ]; then
-	if [ "$inet_addr" == "$inet_prev" ]; then
-		printf "$rubber_stamp: Not updating A record.\n"
+if [[ -n $inet_addr ]]; then
+	if [[ "$inet_addr" = "$inet_prev" ]]; then
+		echo "$rubber_stamp: Not updating A record."
 	else
 		curl -XPUT -d "$objects" \
 		-H "X-Api-Key: $auth_token" \
 		-H "Content-Type: application/json" \
 		"$livedns/domains/$domain/records/$record/A" \
 		> /dev/null 2>&1
-		printf "$rubber_stamp: Updating A record with $inet_addr\n"
+		echo "$rubber_stamp: Updating A record with $inet_addr"
 	fi
 fi
 };
 
-update_inet6_addr()
-{
+update_inet6_addr() {
 local objects='{"rrset_ttl": 600,"rrset_values": ["'$inet6_addr'"]}'
 local livedns="https://dns.api.gandi.net/api/v5"
 
-if [ -n $inet6_addr ]; then
-	if [ "$inet6_addr" == "$inet6_prev" ]; then
-		printf "$rubber_stamp: Not updating AAAA record.\n"
+if [[ -n $inet6_addr ]]; then
+	if [[ "$inet6_addr" = "$inet6_prev" ]]; then
+		echo "$rubber_stamp: Not updating AAAA record."
 	else
 		curl -XPUT -d "$objects" \
 		-H "X-Api-Key: $auth_token" \
 		-H "Content-Type: application/json" \
 		"$livedns/domains/$domain/records/$record/AAAA" \
 		> /dev/null 2>&1
-		printf "$rubber_stamp: Updating AAAA record with $inet6_addr\n"
+		echo "$rubber_stamp: Updating AAAA record with $inet6_addr"
 	fi
 fi
 };
 
-command_help()
-{
+command_help() {
 cat <<EOF
 Usage:	$script_name [-a46l] HOSTNAME [--help] [--version]
 
@@ -119,10 +117,10 @@ editing /etc/$script_name.secret and /etc/$script_name.conf files.
   --version	print version and copyright information
 
 Examples:
-  $script_name -a git
-  $script_name --ipv4 mail
-  $script_name --ipv6 www
-  $script_name -l
+ $script_name -a git
+ $script_name --ipv4 mail
+ $script_name --ipv6 www
+ $script_name -l
 
 Version:
 $script_name, version $SCRIPTVERSION-$(uname)
@@ -131,43 +129,38 @@ Source <https://github.com/robertlarocca/gandi-livedns-dynamic-updater>
 EOF
 };
 
-command_options()
-{
+command_options() {
 case $1 in
--h|--help)
-	command_help
-	;;
--V|--version)
-	printf "$script_name, version $SCRIPTVERSION-$(uname)\n"
-	printf "Copyright (c) 2018-$(date +%Y) Robert LaRocca\n"
-	;;
--6|--ipv6)
-	root_check
+-6 | --ipv6)
 	resolve_check
 	update_inet6_addr
 	;;
--4|--ipv4)
-	root_check
+-4 | --ipv4)
 	resolve_check
 	update_inet_addr
 	;;
--l|--list)
-	printf "$rubber_stamp: IPv4 address $inet_addr\n"
-	printf "$rubber_stamp: IPv6 address $inet6_addr\n"
+-l | --list)
+	echo "$rubber_stamp: IPv4 address $inet_addr"
+	echo "$rubber_stamp: IPv6 address $inet6_addr"
+	;;
+-H | --help)
+	command_help
+	;;
+-V | --version)
+	echo "$script_name, version $SCRIPTVERSION-$(uname)"
+	echo "Copyright (c) 2018-$(date +%Y) Robert LaRocca"
 	;;
 *)
-	if [ ! -z $1 ]; then
-		if [ "-a == $1" ] || [ "--all == $1" ]; then
-			root_check
+	if [[ ! -z $1 ]]; then
+		if [[ "-a = $1" ]] || [[ "--all = $1" ]]; then
 			resolve_check
 			update_inet_addr
 			update_inet6_addr
 		else
-		printf "$script_name: unrecognized option '$1'\n"
+		echo "$script_name: unrecognized option '$1'"
 			command_help
 		fi
 	else
-		root_check
 		resolve_check
 		update_inet_addr
 		update_inet6_addr
