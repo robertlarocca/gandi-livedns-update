@@ -1,24 +1,31 @@
 #!/bin/bash
 
-# Copyright (c) 2021 Robert LaRocca https://www.laroccx.com
+# Copyright (c) 2023 Robert LaRocca https://www.laroccx.com
 
 # require root privileges
 require_root_privileges() {
-	if [[ "$UID" != 0 ]]; then
-		logger -i "Error: $(basename $0 .sh) must be run as root!"
-		echo "Error: $(basename $0 .sh) must be run as root!"
-		exit 1
+	if [[ "$(whoami)" != "root" ]]; then
+		# logger -i "Error: gandi-livedns-update must be run as root!"
+		echo "Error: gandi-livedns-update must be run as root!" 2>&1
+		exit 2
 	fi
-};
+}
 
 require_root_privileges
 
-main() {
-	# install gandi-livedns-dynamic-updater command
-	sudo cp -b -S .bak -v $PWD/gandi-livedns-dynamic-updater.sh \
-		/usr/local/bin/gandi-livedns-dynamic-updater
-	sudo chown root:root /usr/local/bin/gandi-livedns-dynamic-updater
-	sudo chmod 0755 /usr/local/bin/gandi-livedns-dynamic-updater
-};
+install() {
+	# install gandi-livedns-update command
+	sudo cp -b -S .bak -v $PWD/gandi-livedns-update.sh \
+		/usr/local/bin/gandi-livedns-update
+	sudo chown root:root /usr/local/bin/gandi-livedns-update
+	sudo chmod 0755 /usr/local/bin/gandi-livedns-update
+}
 
-main "$@"
+symlink() {
+	# create livedns symbolic link
+	sudo ln -s /usr/local/bin/gandi-livedns-update \
+		/usr/local/bin/livedns
+}
+
+install
+symlink

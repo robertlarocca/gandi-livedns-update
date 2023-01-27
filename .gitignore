@@ -27,8 +27,10 @@ secring.*
 # - https://docs.ansible.com/ansible/latest/vault_guide/index.html
 #
 *.passwd
-**/.passwd/
 *.secret
+**/.passwd/
+gandi-livedns.conf
+gandi-livedns.key
 
 # Log files
 *.log

@@ -9,18 +9,10 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.conf]
-indent_style = tab
-indent_size = 4
-
 # HTML/CSS Style Guide:
 # - https://google.github.io/styleguide/htmlcssguide.html
 [*.{htm,html,css}]
 indent_style = space
-indent_size = 2
-
-[INSTALL]
-indent_style = tab
 indent_size = 2
 
 [*.{j2,jinja2}]
@@ -48,6 +40,10 @@ indent_size = 4
 # Shell Style Guide:
 # - https://google.github.io/styleguide/shellguide.html
 [*.sh]
+indent_style = tab
+indent_size = 2
+
+[*.sql]
 indent_style = tab
 indent_size = 2
 
