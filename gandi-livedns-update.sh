@@ -13,8 +13,8 @@
 #   apt install curl
 
 # Script version and release
-script_version='2.3.0'
-script_release='devel'  # options devel, beta, release, stable
+script_version='2.3.2'
+script_release='beta'  # options devel, beta, release, stable
 
 require_root_privileges() {
 	if [[ "$(whoami)" != "root" ]]; then
@@ -42,20 +42,19 @@ show_help_message() {
 	the configuration file: /etc/gandi-livedns-update.conf
 
 	Options:
-	 all - update the IPv4 and IPv6 address
-	 inet - update only the IPv4 address
-	 inet6 - update only the IPv6 address
+	 -a, all	update the IPv4 and IPv6 addresses
+	 -4, inet	update only the IPv4 address
+	 -6, inet6	update only the IPv6 address
 
-	 list - show the current IPv4 and IPv6 addresses
-
-	 version - show version information
-	 help - show this help message
+	 version	show version information
+	 help		how this help message
 
 	Examples:
 	 gandi-livedns-update all
 	 gandi-livedns-update all git example.com
+	 gandi-livedns-update -4 mail example.com
 	 gandi-livedns-update inet mail example.com
-	 gandi-livedns-update inet6 voip example.com
+	 gandi-livedns-update -6 voip example.com
 	 gandi-livedns-update list
 
 	Exit status:
@@ -78,16 +77,23 @@ show_version_information() {
 	EOF_XYZ
 }
 
-test_if_binary_exists() {
+check_binary_exists() {
 	local binary_command="$1"
-	if [[ ! -x $(which $binary_command) ]]; then
-		cat <<-EOF_XYZ 2>&1
+	if [[ ! -x "$(which $binary_command)" ]]; then
+		if [[ -x "/lib/command-not-found" ]]; then
+		/lib/command-not-found "$binary_command"
+		else
+		cat <<-EOF_XYZ >&2
 		Command '$binary_command' not found, but might be installed with:
-		  sudo apt install $binary_command  # or
-		  sudo dnf install $binary_command  #
-		  sudo yum install $binary_command  #
+		apt install "$binary_command"   # or
+		dnf install "$binary_command"   # or
+		opkg install "$binary_command"  # or
+		snap install "$binary_command"  # or
+		yum install "$binary_command"
+		See your Linux documentation for which 'package manager' to use.
 		EOF_XYZ
-		exit 2
+		fi
+		exit 1
 	fi
 }
 
@@ -101,8 +107,8 @@ error_unrecognized_option() {
 
 # ----- Required global variables ----- #
 
-domain="$3"
 record="$2"
+domain="$3"
 fulldomain="$record.$domain"
 
 # DNS
@@ -111,8 +117,8 @@ bootstrap_dns6="2606:4700:4700::1111"
 lookup="ifconfig.co"
 
 # IPv4
-inet_addr=$(curl --ssl-reqd -s4 "$lookup")
-inet_prev=$(dig @"$bootstrap_dns" A +short "$fulldomain")
+inet4_addr=$(curl --ssl-reqd -s4 "$lookup")
+inet4_prev=$(dig @"$bootstrap_dns" A +short "$fulldomain")
 
 # IPv6
 inet6_addr=$(curl --ssl-reqd -s6 "$lookup")
@@ -123,18 +129,19 @@ log_prefix="$(date +"%b %d %H:%M:%S") $HOSTNAME ->"
 
 # ----- Required global variables ----- #
 
+
 if [[ -f /etc/gandi-livedns-update.conf ]]; then
 	source /etc/gandi-livedns-update.conf
 	if [[ -z $apikey ]]; then
 		echo "$log_prefix Failed to set credentials: apikey" 2>&1
-	elif [[ -z $domain ]]; then
-		echo "$log_prefix Failed to set domain." 2>&1
+		exit 2
 	elif [[ -z $record ]]; then
 		echo "$log_prefix Failed to set record." 2>&1
+	elif [[ -z $domain ]]; then
+		echo "$log_prefix Failed to set domain." 2>&1
 	fi
-	exit 2
 else
-	cat <<-EOF_XYZ > /etc/gandi-livedns-update.conf
+	cat <<-"EOF_XYZ" > /etc/gandi-livedns-update.conf
 	# /etc/gandi-livedns-update.conf
 
 	# Manage your API authentication key using the
@@ -164,39 +171,43 @@ else
 fi
 
 resolve_check() {
-	if [[ -z $inet_addr ]] && [[ -z $inet6_addr ]]; then
+	if [[ -z $inet4_addr ]] && [[ -z $inet6_addr ]]; then
 		echo "$log_prefix Failed to resolve: $lookup" 2>&1
 		exit 2
 	fi
 }
 
-update_inet_addr() {
-	local objects='{"rrset_ttl": 600,"rrset_values": ["'$inet_addr'"]}'
+update_inet4_addr() {
+	local objects="{'rrset_ttl': 600,'rrset_values': ['$inet4_addr']}"
 	local livedns="https://dns.api.gandi.net/api/v5"
 
-	if [[ -n $inet_addr ]]; then
-		if [[ "$inet_addr" = "$inet_prev" ]]; then
+	if [[ -n $inet4_addr ]]; then
+		if [[ "$inet4_addr" = "$inet4_prev" ]]; then
 			echo "$log_prefix Not updating $fulldomain A record"
 		else
-			curl -XPUT -d "$objects" \
+			curl \
+				-XPUT \
+				-d "$objects" \
 				-H "X-Api-Key: $apikey" \
 				-H "Content-Type: application/json" \
 				"$livedns/domains/$domain/records/$record/A" \
 				> /dev/null 2>&1
-			echo "$log_prefix Updating $fulldomain A record to $inet_addr"
+			echo "$log_prefix Updating $fulldomain A record to $inet4_addr"
 		fi
 	fi
 }
 
 update_inet6_addr() {
-	local objects='{"rrset_ttl": 600,"rrset_values": ["'$inet6_addr'"]}'
+	local objects="{'rrset_ttl': 600,'rrset_values': ['$inet6_addr']}"
 	local livedns="https://dns.api.gandi.net/api/v5"
 
 	if [[ -n $inet6_addr ]]; then
 		if [[ "$inet6_addr" = "$inet6_prev" ]]; then
 			echo "$log_prefix Not updating $fulldomain AAAA record"
 		else
-			curl -XPUT -d "$objects" \
+			curl \
+				-XPUT \
+				-d "$objects" \
 				-H "X-Api-Key: $apikey" \
 				-H "Content-Type: application/json" \
 				"$livedns/domains/$domain/records/$record/AAAA" \
@@ -206,48 +217,20 @@ update_inet6_addr() {
 	fi
 }
 
-show_fulldomain_information(){
-	if [[ -n "$fulldomain" ]]; then
-		echo "$fulldomain"
-		echo "  ^"
-		echo "  |"
-	elif [[ -n "$inet_prev" ]]; then
-		echo "$inet_prev"
-	elif [[ -n "$inet6_prev" ]]; then
-		echo $inet6_prev
-	fi
-}
-
-show_extra_information(){
-	if [[ -n "$fulldomain" ]]; then
-		nslookup "$fulldomain" "$bootstrap_dns"
-	elif [[ -n "$fulldomain" ]]; then
-		curl --ssl-reqd -s4 "$lookup"/json
-		echo
-	fi
-}
-
 # Options
 case $1 in
-all)
+all | -a)
 	resolve_check
-	update_inet_addr
+	update_inet4_addr
 	update_inet6_addr
 	;;
-inet)
+inet | inet4 | -4)
 	resolve_check
-	update_inet_addr
+	update_inet4_addr
 	;;
-inet6)
+inet6 | -6)
 	resolve_check
 	update_inet6_addr
-	;;
-list)
-	show_fulldomain_information
-	;;
-extra)
-	# Not documented in shown_help_message.
-	show_nslookup_information
 	;;
 version)
 	show_version_information
@@ -258,7 +241,7 @@ help | --help)
 *)
 	if [[ -z $1 ]]; then
 		resolve_check
-		update_inet_addr
+		update_inet4_addr
 		update_inet6_addr
 	else
 		error_unrecognized_option "$1"
