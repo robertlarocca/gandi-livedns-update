@@ -43,8 +43,8 @@ show_help_message() {
 
 	Options:
 	 -a, all	update the IPv4 and IPv6 addresses
-	 -4, inet	update only the IPv4 address
-	 -6, inet6	update only the IPv6 address
+	 -4, ipv4	update only the IPv4 address
+	 -6, ipv6	update only the IPv6 address
 
 	 version	show version information
 	 help		how this help message
@@ -117,72 +117,73 @@ bootstrap_dns6="2606:4700:4700::1111"
 lookup="ifconfig.co"
 
 # IPv4
-inet4_addr=$(curl --ssl-reqd -s4 "$lookup")
-inet4_prev=$(dig @"$bootstrap_dns" A +short "$fulldomain")
+ipv4_address=$(curl --ssl-reqd -s4 "$lookup")
+ipv4_previous=$(dig @"$bootstrap_dns" A +short "$fulldomain")
 
 # IPv6
-inet6_addr=$(curl --ssl-reqd -s6 "$lookup")
-inet6_prev=$(dig @"$bootstrap_dns6" AAAA +short "$fulldomain")
+ipv6_address=$(curl --ssl-reqd -s6 "$lookup")
+ipv6_previous=$(dig @"$bootstrap_dns6" AAAA +short "$fulldomain")
 
 # Logging
 log_prefix="$(date +"%b %d %H:%M:%S") $HOSTNAME ->"
 
 # ----- Required global variables ----- #
 
+check_config() {
+	if [[ -f /etc/gandi-livedns-update.conf ]]; then
+		source /etc/gandi-livedns-update.conf
+		if [[ -z $apikey ]]; then
+			echo "$log_prefix Failed to set credentials: apikey" 2>&1
+			exit 2
+		elif [[ -z $record ]]; then
+			echo "$log_prefix Failed to set record." 2>&1
+		elif [[ -z $domain ]]; then
+			echo "$log_prefix Failed to set domain." 2>&1
+		fi
+	else
+		cat <<-"EOF_XYZ" > /etc/gandi-livedns-update.conf
+		# /etc/gandi-livedns-update.conf
 
-if [[ -f /etc/gandi-livedns-update.conf ]]; then
-	source /etc/gandi-livedns-update.conf
-	if [[ -z $apikey ]]; then
-		echo "$log_prefix Failed to set credentials: apikey" 2>&1
-		exit 2
-	elif [[ -z $record ]]; then
-		echo "$log_prefix Failed to set record." 2>&1
-	elif [[ -z $domain ]]; then
-		echo "$log_prefix Failed to set domain." 2>&1
+		# Manage your API authentication key using the
+		# Gandi.net dashboard at https://account.gandi.net
+
+		# Your credentials for authenticating with Gandi LiveDNS:
+		# apikey="EXAMPLE0000zg5MiEyMzQ1Nj"
+
+		# Manage your domain records using the Gandi.net
+		# dashboard at https://admin.gandi.net/domain
+
+		# Setting domain and record here will override the commadline:
+		# domain="example.com"
+		# record="www"
+
+		# Lookup services are used to reverse lookup your current IP addresses:
+		lookup="ifconfig.co"
+
+		# Bootstrap DNS servers are used to resolve the lookup service address:
+		bootstrap_dns="1.1.1.1"
+		bootstrap_dns6="2606:4700:4700::1111"
+
+		EOF_XYZ
+
+		chown root:root /etc/gandi-livedns-update.*
+		chmod 0600 /etc/gandi-livedns-update.*
 	fi
-else
-	cat <<-"EOF_XYZ" > /etc/gandi-livedns-update.conf
-	# /etc/gandi-livedns-update.conf
+}
 
-	# Manage your API authentication key using the
-	# Gandi.net dashboard at https://account.gandi.net
-
-	# Your credentials for authenticating with Gandi LiveDNS:
-	# apikey="EXAMPLE0000zg5MiEyMzQ1Nj"
-
-	# Manage your domain records using the Gandi.net
-	# dashboard at https://admin.gandi.net/domain
-
-	# Setting domain and record here will override the commadline:
-	# domain="example.com"
-	# record="www"
-
-	# Lookup services are used to reverse lookup your current IP addresses:
-	lookup="ifconfig.co"
-
-	# Bootstrap DNS servers are used to resolve the lookup service address:
-	bootstrap_dns="1.1.1.1"
-	bootstrap_dns6="2606:4700:4700::1111"
-
-	EOF_XYZ
-
-	chown root:root /etc/gandi-livedns-update.*
-	chmod 0600 /etc/gandi-livedns-update.*
-fi
-
-resolve_check() {
-	if [[ -z $inet4_addr ]] && [[ -z $inet6_addr ]]; then
+check_lookup() {
+	if [[ -z $ipv4_address ]] && [[ -z $ipv6_address ]]; then
 		echo "$log_prefix Failed to resolve: $lookup" 2>&1
 		exit 2
 	fi
 }
 
-update_inet4_addr() {
-	local objects="{'rrset_ttl': 600,'rrset_values': ['$inet4_addr']}"
+update_ipv4_address() {
+	local objects="{'rrset_ttl': 600,'rrset_values': ['$ipv4_address']}"
 	local livedns="https://dns.api.gandi.net/api/v5"
 
-	if [[ -n $inet4_addr ]]; then
-		if [[ "$inet4_addr" = "$inet4_prev" ]]; then
+	if [[ -n $ipv4_address ]]; then
+		if [[ "$ipv4_address" = "$ipv4_previous" ]]; then
 			echo "$log_prefix Not updating $fulldomain A record"
 		else
 			curl \
@@ -192,17 +193,17 @@ update_inet4_addr() {
 				-H "Content-Type: application/json" \
 				"$livedns/domains/$domain/records/$record/A" \
 				> /dev/null 2>&1
-			echo "$log_prefix Updating $fulldomain A record to $inet4_addr"
+			echo "$log_prefix Updating $fulldomain A record to $ipv4_address"
 		fi
 	fi
 }
 
-update_inet6_addr() {
-	local objects="{'rrset_ttl': 600,'rrset_values': ['$inet6_addr']}"
+update_ipv6_address() {
+	local objects="{'rrset_ttl': 600,'rrset_values': ['$ipv6_address']}"
 	local livedns="https://dns.api.gandi.net/api/v5"
 
-	if [[ -n $inet6_addr ]]; then
-		if [[ "$inet6_addr" = "$inet6_prev" ]]; then
+	if [[ -n $ipv6_address ]]; then
+		if [[ "$ipv6_address" = "$ipv6_previous" ]]; then
 			echo "$log_prefix Not updating $fulldomain AAAA record"
 		else
 			curl \
@@ -212,25 +213,31 @@ update_inet6_addr() {
 				-H "Content-Type: application/json" \
 				"$livedns/domains/$domain/records/$record/AAAA" \
 				> /dev/null 2>&1
-			echo "$log_prefix Updating $fulldomain AAAA record to $inet6_addr"
+			echo "$log_prefix Updating $fulldomain AAAA record to $ipv6_address"
 		fi
 	fi
 }
 
+check_binary_exists curl
+check_binary_exists dig
+
 # Options
 case $1 in
 all | -a)
-	resolve_check
-	update_inet4_addr
-	update_inet6_addr
+	check_config
+	check_lookup
+	update_ipv4_address
+	update_ipv6_address
 	;;
 inet | inet4 | -4)
-	resolve_check
-	update_inet4_addr
+	check_config
+	check_lookup
+	update_ipv4_address
 	;;
 inet6 | -6)
-	resolve_check
-	update_inet6_addr
+	check_config
+	check_lookup
+	update_ipv6_address
 	;;
 version)
 	show_version_information
@@ -240,9 +247,10 @@ help | --help)
 	;;
 *)
 	if [[ -z $1 ]]; then
-		resolve_check
-		update_inet4_addr
-		update_inet6_addr
+		check_config
+		check_lookup
+		update_ipv4_address
+		update_ipv6_address
 	else
 		error_unrecognized_option "$1"
 	fi
