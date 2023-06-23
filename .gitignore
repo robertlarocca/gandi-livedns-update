@@ -29,8 +29,9 @@ secring.*
 *.passwd
 *.secret
 **/.passwd/
+gandi-livedns-update.conf
 gandi-livedns.conf
-gandi-livedns.key
+livedns.conf
 
 # Log files
 *.log
