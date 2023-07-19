@@ -17,7 +17,7 @@ script_version='2.5.3'
 script_release='beta'  # options devel, beta, release, stable
 
 # Uncomment to enable bash xtrace mode.
-set -xv
+# set -xv
 
 # ----- Required global variables ----- #
 
